@@ -23,7 +23,7 @@ Once the script is installed, MemoServIntegrationScript::Startup is automaticall
 Dependencies
 ============
 
-Mail command of your choice - I use [sendemail](http://caspian.dotconf.net/menu/Software/SendEmail/), a perl script currently packaged in Debian. This script must be told how to invoke it (see later).
+Optionally a mail command of your choice - I use [sendemail](http://caspian.dotconf.net/menu/Software/SendEmail/), a perl script currently packaged in Debian. This script must be told how to invoke it (see later) - if you don't configure a command, the script will complain when it detects memos.
 
 
 Uninstallation
@@ -40,6 +40,12 @@ General Use And Configuration
 The 'Scripts' menu is created on the main KVIrc menubar, which then hosts the MemoServ Integration Script menu. This gives you access to the MemoServ commands:
 
 ![Script menu](https://f92fac806bf10a96c0b8-8a0a46e5f1a5cc9854958bc3503f0f88.ssl.cf1.rackcdn.com/media_entries/7436/script-menu.png)
+
+'Send memo to registered user on <network\>' pops up the following dialog:
+
+![Send memo to registered user dialog](https://f92fac806bf10a96c0b8-8a0a46e5f1a5cc9854958bc3503f0f88.ssl.cf1.rackcdn.com/media_entries/7438/send-memo-to-registered-user-dialog.png)
+
+The 'Check Nick' button allows you to quickly run an 'ns info' command to ensure the recipient is a registered nick - see the server's console window for results.
 
 At the bottom of this list is the 'Configure email command...' option - The nick blacklisting dialog:
 
