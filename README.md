@@ -34,8 +34,8 @@ In a KVIrc console window:
     /MemoServIntegrationScript::uninstall::uninstall
 
 
-General Configuration
-=====================
+General Use And Configuration
+=============================
 
 The 'Scripts' menu is created on the main KVIrc menubar, which then hosts the MemoServ Integration Script menu. This gives you access to the MemoServ commands:
 
