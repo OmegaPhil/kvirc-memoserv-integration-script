@@ -1,0 +1,365 @@
+# MemoServ Integration Script
+# ===========================
+
+# Version 1.2 March 2014
+
+/*
+Copyright (C) 2010-2014 OmegaPhil (OmegaPhil+KVIrc@gmail.com)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.    See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.    If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+# EVENTS BLOCK
+# Intercepting start events
+event(OnKVIrcStartup,MemoServIntegrationScript)
+{
+    # Running MemoServIntegrationScript::Startup
+    MemoServIntegrationScript::Startup
+}
+
+# Intercepting MemoServ notices
+event(OnMemoServNotice,MemoServIntegrationScript)
+{
+    # $0 = MemoServ nick
+    # $1 = MemoServ username
+    # $2 = MemoServ host
+    # $3 = message
+    
+    # Making sure mail command is configured, complaining and exiting if not
+    %command = %MemoServIntegrationScript_Settings{"MailCommand"}
+    if (%command == "")
+    {
+        warning "OnQueryNotice event intercepted but mail command is not configured! Please configure email command."
+        return
+    }
+    
+    # Setting message
+    %message = $3
+
+    # Debug code
+    #echo "MemoServ message detected: %message"
+    
+    # Detecting new memo messages as they come in
+    if ($str.left(%message, 24) == "You have a new memo from")
+    {
+        # MemoServ new memo detected - obtaining memoFrom (last word in this message, fullstop at end)
+        %memoFrom = $str.grep("You have a new memo from (.*)\.", %message, "pr")[1]
+
+        # Emailing to inform about the memo
+        %subject = "[MemoServ Integration Script] Received memo on $context.networkName"
+        %message = "You have received a memo from %memoFrom on $context.networkName."
+
+        # Substituting subject and message into arguments and running mail command
+        %command =~ s/\%s/%subject/g
+        %command =~ s/\%m/%message/g
+        exec(%command) {}
+        return
+    }
+
+    # Detecting new memo messages as they are announced on login to the IRC server, or lifting the IRC away status
+    # 'You have n new memo.'/'You have n new memos.'
+    %matches = $str.grep("You have ([0-9]*) new (memo|memos)\.", %message, "pr")
+    if (%matches[0] != "")
+    {
+        # MemoServ unread memos detected - obtaining memo count
+        %numberOfMemos = %matches[1]
+
+        # Setting emailMessage and emailSubject based on singular or multiple unread memos
+        if (%numberOfMemos > 1 )
+        {
+            %subject = "[MemoServ Integration Script] You have unread memos on $context.networkName"
+            %message = "You have %numberOfMemos unread memos on $context.networkName."
+        }
+        else
+        {
+            %subject = "[MemoServ Integration Script] You have an unread memo on $context.networkName"
+            %message = "You have an unread memo on $context.networkName"
+        }
+
+        # Substituting subject and message into arguments and running mail command
+        %command =~ s/\%s/%subject/g
+        %command =~ s/\%m/%message/g
+        exec(%command) {}
+        return
+    }
+}
+
+
+# ALIASES BLOCK
+alias(MemoServIntegrationScript::Save)
+{
+    # Opening config file
+    %configFileID = $config.open($file.localdir("/scripts/memoserv_integration_script_settings"))
+    
+    # Saving settings
+    config.clearsection %configFileID "KVIrc"
+    config.write %configFileID "MemoServIntegrationScript_Settings" $serialize(%MemoServIntegrationScript_Settings)
+
+    # Committing settings
+    config.close %configFileID
+}
+
+alias(MemoServIntegrationScript::Startup)
+{
+    # Making sure settings directory exists
+    if ($file.exists($file.localdir("/scripts/")) == $false) file.mkdir $file.localdir("/scripts/")
+    
+    # Loading settings if the config file exists
+    if ($file.exists($file.localdir("/scripts/memoserv_integration_script_settings")) == $true)
+    {
+        # Opening config file
+        %configFileID = $config.open($file.localdir("/scripts/memoserv_integration_script_settings"))
+        
+        # Loading settings
+        %MemoServIntegrationScript_Settings = $unserialize($config.read(%configFileID, "MemoServIntegrationScript_Settings"))
+        
+        # Closing configuration file
+        config.close %configFileID
+    }
+    
+    # Creating dialogs
+    # Send Memo dialog
+    %dialog = $new(dialog,,"MemoServIntegrationScript_SendMemo")
+    %dialog->$setWindowTitle("Send Memo - MemoServ Integration Script")
+
+    %vbox = $new(vbox,%dialog,"VBox")
+    %layout = $new(layout,%dialog)
+    %layout->$addRowSpacing(0,10)
+    %layout->$addWidget(%vbox,0,0)
+    
+    %label_nick = $new(label,%vbox)
+    %label_nick->$setText("Nick to message:")
+    
+    %hbox = $new(hbox,%dialog,"HBox")
+    %layout->$addWidget(%hbox,1,0)
+
+    %lineedit_nick = $new(lineedit,%hbox,"NickToMessage")
+    %dialog->%lineedit_nick = %lineedit_nick
+
+    %button_CheckNick = $new(button, %hbox)
+    %button_CheckNick->$setText("Check Nick")
+
+    %vbox = $new(vbox,%dialog,"VBox")
+    %layout->$addWidget(%vbox,2,0)
+ 
+    %label_message = $new(label,%vbox)
+    %label_message->$setText("Message:")
+    %multilineedit_message = $new(multilineedit,%vbox,"Message")
+    %dialog->%multilineedit_message = %multilineedit_message
+    
+    %hbox = $new(hbox,%dialog)
+    %layout->$addWidget(%hbox,3,0)
+
+    %button_OK = $new(button, %hbox)
+    %button_OK->$setText("OK")
+
+    %button_Cancel = $new(button, %hbox)
+    %button_Cancel->$setText("Cancel")
+
+    # Event overrides
+    privateimpl(%dialog,"showevent")
+    {
+        # Clearing widgets
+        $$->%lineedit_nick->$clear
+        $$->%multilineedit_message->$clear
+    }
+
+    privateimpl(%dialog,"CheckNick")
+    {
+        # Obtaining nick
+        %nick = $$->%lineedit_nick->$Text
+        
+        # Checking to see if the nick has been given
+        if (%nick == "")
+        {
+            # It hasn't - warning user and exiting
+            dialog.message -i=$icon("socketerror") ("MemoServ Integration Script", "Please specify a nick to check.","escape=Cancel") {}
+            return
+        }
+        
+        # Echoing informative message
+        echo "MemoServ Integration Script: Attempting to check if %nick is registered or not on $context.networkName..."
+
+        # Checking with NickServ if the nick is registered or not
+        ns info %nick 
+    }
+
+    privateimpl(%dialog,"OK")
+    {
+        # Obtaining nick
+        %nick = $$->%lineedit_nick->$Text
+        
+        # Checking to see if the nick has been given
+        if (%nick == "")
+        {
+            # It hasn't - warning user and exiting
+            dialog.message -i=$icon("socketerror") ("MemoServ Integration Script", "Please specify a nick to message.","escape=Cancel") {}
+            return
+        }
+
+        # Obtaining message
+        %message = $$->%multilineedit_message->$Text
+        
+        # Checking to see if a message has been given
+        if (%message == "")
+        {
+            # It hasn't - warning user and exiting
+            dialog.message -i=$icon("socketerror") ("MemoServ Integration Script", "Please specify a message for %nick.","escape=Cancel") {}
+            return
+        }
+
+        # Echoing informative message
+        echo "MemoServ Integration Script: Attempting to memo %nick with the message '%message' on $context.networkName..."
+
+        # Attempting to send the memo to the desired nick
+        ms send %nick %message
+        $$->$hide
+    }
+
+    privateimpl(%dialog,"Cancel")
+    {
+        $$->$hide
+    }
+    
+    objects.connect %button_CheckNick clicked %dialog CheckNick
+    objects.connect %button_OK clicked %dialog OK
+    objects.connect %button_Cancel clicked %dialog Cancel
+
+    # Saving dialog object ID
+    %MemoServIntegrationScript_Settings{"GUI"}{"MemoServIntegrationScript_SendMemo"} = %dialog
+
+    # Mail command dialog
+    %dialog = $new(dialog,,"MemoServIntegrationScript_MailCommand")
+    %dialog->$setWindowTitle("Configure Email Command - MemoServ Integration Script")
+
+    %vbox = $new(vbox,%dialog,"VBox")
+    %layout = $new(layout,%dialog)
+    %layout->$addRowSpacing(0,30)
+    %layout->$addWidget(%vbox,0,0)
+    
+    %label_command = $new(label,%vbox)
+    %label_command->$setText("Please enter the command to use when this script should send out an email:\n")
+    
+    %lineedit_command = $new(lineedit,%vbox,"Command")
+    %dialog->%lineedit_command = %lineedit_command
+
+    # Help labels split up based on alignment. Note that 'WordBreak' is in reality justify
+    %label_help1 = $new(label,%vbox,"Help 1")
+    %label_help1->$setText("\nThe command should be a full invocation including the substitution variables below representing the email subject and message. Speechmark-delimit the program path (if it contains spaces) and all relevant arguments including the substitution characters - the command is ran through a shell.")
+    %label_help1->$setAlignment("WordBreak")
+
+    %label_help2 = $new(label,%vbox,"Help 2")
+    %label_help2->$setText("\nSubject: \%s\nMessage: \%m\n\nExample sendemail invocation using SMTP authentication with TLS disabled due to an invalid certificate in my case - select and copy the text if needed:\n\n\/usr/bin/sendemail -f \"me@mymailhost.org\" -t \"to@destinationhost.org\" -s \"mymailserver.co.uk\" -xu \"SMTPAuthUsername\" -xp \"SMTPAuthPassword\" -o tls=no -u \"\%s\" -m \"\%m\"\n")
+
+    %hbox = $new(hbox,%dialog)
+    %layout->$addWidget(%hbox,1,0)
+
+    %button_OK = $new(button, %hbox)
+    %button_OK->$setText("OK")
+
+    %button_Cancel = $new(button, %hbox)
+    %button_Cancel->$setText("Cancel")
+
+    # Event overrides
+    privateimpl(%dialog,"showevent")
+    {
+        # Populating lineedit_command 
+        $$->%lineedit_command->$setText(%MemoServIntegrationScript_Settings{"MailCommand"})
+        $$->%lineedit_command->$setFocus
+    }
+
+    privateimpl(%dialog,"OK")
+    {
+        # Making sure subject and message substitutions are present
+        if ($(!($str.contains($$->%lineedit_command->$text, "\%s") && $str.contains($$->%lineedit_command->$text, "\%m"))))
+        {
+            dialog.message ("Configure Email Command - MemoServ Integration Script", "Please ensure the email command contains both the '\%s' subject and '\%m' message substitutions.", "Warning", "OK") {}
+            return
+        }
+
+        # Saving configuration
+        %MemoServIntegrationScript_Settings{"MailCommand"} = $$->%lineedit_command->$text
+        MemoServIntegrationScript::Save
+
+        $$->$hide
+    }
+
+    privateimpl(%dialog,"Cancel")
+    {
+        $$->$hide
+    }
+    
+    objects.connect %button_OK clicked %dialog OK
+    objects.connect %button_Cancel clicked %dialog Cancel
+
+    # Saving dialog object ID
+    %MemoServIntegrationScript_Settings{"GUI"}{"MemoServIntegrationScript_MailCommand"} = %dialog
+    
+    # Integrating into main toolbar
+    if ($popup.exists("MemoServIntegrationScript_Main")) popup.destroy "MemoServIntegrationScript_Main"
+    popup.create "MemoServIntegrationScript_Main"
+    popup.addPrologue("MemoServIntegrationScript_Main")
+    {
+        # Obtaining network name
+        %:network = $context.networkName
+    }
+    popup.addItem("MemoServIntegrationScript_Main", "List memos on \%:network") ms list
+    popup.addSeparator "MemoServIntegrationScript_Main"
+    popup.addItem("MemoServIntegrationScript_Main", "Read all new memos on \%:network") ms read new
+    popup.addItem("MemoServIntegrationScript_Main", "Delete ALL memos on \%:network") ms del all
+    popup.addSeparator "MemoServIntegrationScript_Main"
+    popup.addItem("MemoServIntegrationScript_Main", "Send memo to registered user on \%:network") %MemoServIntegrationScript_Settings{"GUI"}{"MemoServIntegrationScript_SendMemo"}->$show
+    popup.addSeparator "MemoServIntegrationScript_Main"
+    popup.addItem("MemoServIntegrationScript_Main", "Configure email command...") %MemoServIntegrationScript_Settings{"GUI"}{"MemoServIntegrationScript_MailCommand"}->$show
+
+    # Adding MemoServ Integration Script menu to main script popup (ensuring that it doesn't exist already)
+    popup.delitem -q "Scripts" "MemoServIntegrationScript_Main"
+    popup.addExtPopup "Scripts" "MemoServIntegrationScript_Main" "MemoServ Integration Script" "" "MemoServIntegrationScript_Main"
+    
+    # Tying main script popup to KVIrc menu (appears after 'Scripting')
+    setmenu -i=2 "Scripts" "Scripts"
+}
+
+# Uninstaller alias
+alias(MemoServIntegrationScript::uninstall::uninstall)
+{
+    # All events and aliases should be uninstalled here
+    alias(MemoServIntegrationScript::Save) {}
+    alias(MemoServIntegrationScript::Startup) {}
+    alias(MemoServIntegrationScript::uninstall::uninstall) {}
+    event(OnKVIrcStartup,MemoServIntegrationScript) {}
+    event(OnMemoServNotice,MemoServIntegrationScript) {}
+    
+    # Removing popups
+    popup.delitem -q "Scripts" "MemoServIntegrationScript_Main"
+    popup.destroy -q "MemoServIntegrationScript_Main"
+    
+    # Destroying objects
+    foreach(%object,$keys(%MemoServIntegrationScript_Settings{"GUI"}))
+    {
+        destroy %MemoServIntegrationScript_Settings{"GUI"}{%object}
+    }
+    
+    # Clearing global variables
+    %MemoServIntegrationScript_Settings = ""
+}
+
+
+# COMMENTS
+
+# MemoServIntegrationScript_Settings format:
+
+# Item: {"GUI"}. Data: GUI objects.
+# Item: {"MailCommand"}. Data: Command to use to send email.
