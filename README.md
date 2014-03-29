@@ -45,9 +45,9 @@ The 'Scripts' menu is created on the main KVIrc menubar, which then hosts the Me
 
 ![Send memo to registered user dialog](https://f92fac806bf10a96c0b8-8a0a46e5f1a5cc9854958bc3503f0f88.ssl.cf1.rackcdn.com/media_entries/7438/send-memo-to-registered-user-dialog.png)
 
-The 'Check Nick' button allows you to quickly run an 'ns info' command to ensure the recipient is a registered nick - see the server's console window for results.
+The 'Check Nick' button allows you to quickly run an 'ns info' command to ensure the recipient is a registered nick - see the server's console window for results. This won't work on networks that don't support the 'ns' shortcut - do such networks exist that support ms but not ns?
 
-At the bottom of this list is the 'Configure email command...' option - The nick blacklisting dialog:
+At the bottom of this list is the 'Configure email command...' option:
 
 ![Configure email command dialog](https://f92fac806bf10a96c0b8-8a0a46e5f1a5cc9854958bc3503f0f88.ssl.cf1.rackcdn.com/media_entries/7437/configure-email-command-dialog.png)
 
