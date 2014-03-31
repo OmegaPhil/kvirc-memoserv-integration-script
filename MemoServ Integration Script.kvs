@@ -185,7 +185,7 @@ alias(MemoServIntegrationScript::Startup)
         if (%nick == "")
         {
             # It hasn't - warning user and exiting
-            dialog.message -i=$icon("socketerror") ("MemoServ Integration Script", "Please specify a nick to check.","escape=Cancel") {}
+            dialog.message("MemoServ Integration Script", "Please specify a nick to check.","Warning") {}
             return
         }
         
@@ -205,7 +205,7 @@ alias(MemoServIntegrationScript::Startup)
         if (%nick == "")
         {
             # It hasn't - warning user and exiting
-            dialog.message -i=$icon("socketerror") ("MemoServ Integration Script", "Please specify a nick to message.","escape=Cancel") {}
+            dialog.message("MemoServ Integration Script", "Please specify a nick to message.","Warning") {}
             return
         }
 
@@ -216,7 +216,7 @@ alias(MemoServIntegrationScript::Startup)
         if (%message == "")
         {
             # It hasn't - warning user and exiting
-            dialog.message -i=$icon("socketerror") ("MemoServ Integration Script", "Please specify a message for %nick.","escape=Cancel") {}
+            dialog.message("MemoServ Integration Script", "Please specify a message for %nick.","Warning") {}
             return
         }
 
@@ -285,7 +285,7 @@ alias(MemoServIntegrationScript::Startup)
         # Making sure subject and message substitutions are present
         if ($(!($str.contains($$->%lineedit_command->$text, "\%s") && $str.contains($$->%lineedit_command->$text, "\%m"))))
         {
-            dialog.message ("Configure Email Command - MemoServ Integration Script", "Please ensure the email command contains both the '\%s' subject and '\%m' message substitutions.", "Warning", "OK") {}
+            dialog.message("Configure Email Command - MemoServ Integration Script", "Please ensure the email command contains both the '\%s' subject and '\%m' message substitutions.", "Warning", "OK") {}
             return
         }
 
