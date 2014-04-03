@@ -50,6 +50,8 @@ event(OnMemoServNotice,MemoServIntegrationScript)
 
     # Debug code
     #echo "MemoServ message detected: %message"
+
+    # NOTE: If I ever extend this to include text from the memo, it must be sanitised to prevent malicious users injecting commands - it is ran through the shell
     
     # Detecting new memo messages as they come in
     if ($str.left(%message, 24) == "You have a new memo from")
