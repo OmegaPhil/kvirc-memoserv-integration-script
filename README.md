@@ -6,11 +6,13 @@ To see if this script will work for you on your network of interest, try the fol
 
 If the server responds with 'Unknown command' then this will not work. Please create a feature request (see later) on the issue tracker if you want your network supported (I'm hoping this will be simple enough to do).
 
-Last updated on 29.03.14 for v1.2.
+Last updated on 4.11.14 for v1.3.
 
 
 Installation
 ============
+
+v1.3+ requires KVIrc 4.3.1 r6393 or higher due to a KVIrc Script change - for all I know I'm the only user of this script, if you have an earlier version of KVIrc and want to use this script, please open an issue on Github (see 'Bugs And Feature Requests' later) and I will try to work something out.
 
 To load the script into KVIrc (which then persists until you uninstall) and run its startup alias, in a KVIrc console window:
 
@@ -79,4 +81,4 @@ Please create an issue on the [Github issue tracker](https://github.com/OmegaPhi
 Contact Details
 ===============
 
-OmegaPhil+KVIrc.Script@gmail.com
+OmegaPhil@startmail.com
